@@ -73,17 +73,23 @@ def whos_hot(days):
     conn = get_db_conn()
     cur = conn.cursor()
     since = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
-    cur.execute("""
+
+    # Determine minimum at-bats based on the number of days
+    min_ab = 50 if days >= 30 else 20
+
+    query = """
         SELECT player_id, player_name, team,
                SUM(hits) AS hits, SUM(at_bats) AS at_bats,
                SUM(home_runs) AS home_runs, SUM(rbi) AS rbi, SUM(runs) AS runs
         FROM baseballdb.player_daily_stats
         WHERE game_date >= %s
         GROUP BY player_id, player_name, team
-        HAVING SUM(at_bats) >= 20
-        ORDER BY (SUM(hits)::float / NULLIF(SUM(at_bats),0)) DESC
-    """, (since,))
+        HAVING SUM(at_bats) >= %s
+        ORDER BY (SUM(hits)::float / NULLIF(SUM(at_bats), 0)) DESC
+    """
+    cur.execute(query, (since, min_ab))
     rows = cur.fetchall()
+
     trending = []
     for row in rows:
         hits = row[3] or 0
@@ -100,6 +106,7 @@ def whos_hot(days):
             'runs': row[7] or 0,
             'avg': avg
         })
+
     cur.close()
     conn.close()
     return jsonify(trending)
