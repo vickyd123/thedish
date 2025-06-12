@@ -4,6 +4,7 @@ import psycopg2
 import requests
 from bs4 import BeautifulSoup
 import os
+import json
 import boto3
 from dotenv import load_dotenv
 
@@ -40,6 +41,28 @@ def daily_digest():
         return jsonify({"digest": "AWS credentials not found."}), 500
     except ClientError as e:
         return jsonify({"digest": f"Error accessing S3: {str(e)}"}), 500
+
+@app.route('/api/daily_trivia')
+def daily_trivia():
+    # S3 setup (reuse your existing S3 config)
+    s3 = boto3.client(
+        's3',
+        aws_access_key_id=AWS_ACCESS_KEY_ID,
+        aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+        region_name=AWS_REGION
+    )
+    try:
+        # Download the JSON file from S3
+        obj = s3.get_object(Bucket=S3_BUCKET, Key='trivia_questions.json')
+        questions = json.loads(obj['Body'].read().decode('utf-8'))
+        # Pick today's question (cycle through if more than 100 days)
+        day_of_year = (datetime.now().timetuple().tm_yday - 1) % len(questions)
+        question = questions[day_of_year]
+        return jsonify(question)
+    except s3.exceptions.NoSuchKey:
+        return jsonify({"error": "Trivia questions file not found."}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
     
 
 def get_db_conn():
@@ -89,6 +112,7 @@ def whos_hot(days):
         GROUP BY player_id, player_name, team
         HAVING SUM(at_bats) >= %s
         ORDER BY (SUM(hits)::float / NULLIF(SUM(at_bats), 0)) DESC
+        LIMIT 100
     """
     cur.execute(query, (since, min_ab))
     rows = cur.fetchall()
