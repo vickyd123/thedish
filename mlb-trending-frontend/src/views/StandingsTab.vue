@@ -44,14 +44,37 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="team in league.wildCardTeams" :key="team.id">
-                <td class="team-col">{{ team.name }}</td>
-                <td class="stat-col">{{ team.wins }}</td>
-                <td class="stat-col">{{ team.losses }}</td>
-                <td class="stat-col">{{ (Number(team.pct) || 0).toFixed(3) }}</td>
-                <td class="stat-col">{{ team.gb === '0.0' ? '-' : team.gb }}</td>
-              </tr>
-            </tbody>
+  <!-- Top 3 wild card teams -->
+  <tr v-for="(team, index) in league.wildCardTeams.slice(0, 3)" :key="team.id">
+    <td class="team-col">{{ team.name }}</td>
+    <td class="stat-col">{{ team.wins }}</td>
+    <td class="stat-col">{{ team.losses }}</td>
+    <td class="stat-col">{{ (Number(team.pct) || 0).toFixed(3) }}</td>
+    <td class="stat-col">
+      {{ index === 2
+          ? '-'
+          : (team.wildCardGB !== undefined
+              ? '+' + Math.abs(team.wildCardGB).toFixed(1)
+              : team.gb === '0.0' ? '-' : team.gb)
+      }}
+    </td>
+  </tr>
+  <!-- Divider after the third row -->
+  <tr class="divider-row">
+    <td colspan="5"><hr></td>
+  </tr>
+  <!-- Remaining wild card teams (teams 4 and 5) -->
+  <tr v-for="(team) in league.wildCardTeams.slice(3)" :key="team.id">
+    <td class="team-col">{{ team.name }}</td>
+    <td class="stat-col">{{ team.wins }}</td>
+    <td class="stat-col">{{ team.losses }}</td>
+    <td class="stat-col">{{ (Number(team.pct) || 0).toFixed(3) }}</td>
+    <td class="stat-col">
+      {{ team.wildCardGB !== undefined ? team.wildCardGB.toFixed(1) : team.gb === '0.0' ? '-' : team.gb }}
+    </td>
+  </tr>
+</tbody>
+
           </table>
         </div>
       </div>
@@ -102,28 +125,37 @@ export default {
         }));
 
         // Collect all non-division-leading teams (wild card candidates)
-       // Collect all non-division-leading teams (wild card candidates)
-const wildCardCandidates = data.records.flatMap(
-  division => division.teamRecords
-    .filter(team => {
-      const rank = team.divisionRank;
-      return rank !== 1 && rank !== '1' && rank !== undefined;
-    })
-    .map(team => ({
-      id: team.team.id,
-      name: team.team.name,
-      wins: team.wins,
-      losses: team.losses,
-      pct: team.winningPercentage,
-      gb: team.gamesBack
-    }))
-);
+        const wildCardCandidates = data.records.flatMap(
+          division => division.teamRecords
+            .filter(team => {
+              const rank = team.divisionRank;
+              return rank !== 1 && rank !== '1' && rank !== undefined;
+            })
+            .map(team => ({
+              id: team.team.id,
+              name: team.team.name,
+              wins: team.wins,
+              losses: team.losses,
+              pct: team.winningPercentage,
+              gb: team.gamesBack
+            }))
+        );
 
-// Sort by win percentage and take top 3
-const wildCardTeams = wildCardCandidates
-  .sort((a, b) => (Number(b.pct) || 0) - (Number(a.pct) || 0))
-  .slice(0, 3);
+        // Sort by win percentage and take top 5
+        const wildCardTeams = wildCardCandidates
+          .sort((a, b) => (Number(b.pct) || 0) - (Number(a.pct) || 0))
+          .slice(0, 5);
 
+        // Calculate wild card games back (using third team as reference)
+        if (wildCardTeams.length > 2) {
+          const thirdTeamWins = wildCardTeams[2].wins;
+          const thirdTeamLosses = wildCardTeams[2].losses;
+          wildCardTeams.forEach((team) => {
+            const winsDiff = thirdTeamWins - team.wins;
+            const lossesDiff = team.losses - thirdTeamLosses;
+            team.wildCardGB = (winsDiff + lossesDiff) / 2;
+          });
+        }
 
         return {
           id: this.leagueIds[idx],
@@ -227,6 +259,16 @@ const wildCardTeams = wildCardCandidates
 .standings-table tr:hover {
   background: var(--table-row-hover);
 }
+.divider-row td {
+  padding: 0;
+  border: none;
+}
+.divider-row hr {
+  margin: 0.5rem 0;
+  border: 0;
+  border-top: 2px dotted #888;
+}
+
 .error-message {
   color: #c0392b;
   font-weight: bold;
