@@ -91,8 +91,10 @@ export default {
     },
   },
   mounted() {
-    this.fetchDigest();
-  },
+  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+  localStorage.removeItem(`daily-digest-${yesterday}`);
+  this.fetchDigest();
+},
 };
 </script>
 

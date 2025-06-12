@@ -73,33 +73,97 @@
           </label>
         </div>
 
-        <ul v-if="filteredHotPlayers.length" class="hot-list">
-          <li
-            v-for="player in filteredHotPlayers"
-            :key="player.player_id"
-            class="hot-item"
-          >
-            <div class="hot-row">
-              <img
-                v-if="getTeamLogoUrl(player.team)"
-                :src="getTeamLogoUrl(player.team)"
-                :alt="player.team + ' logo'"
-                class="team-logo-mini"
-                loading="lazy"
-              />
-              <span class="hot-name" @click="goToPlayer(player.player_id)" tabindex="0" role="button" @keydown.enter="goToPlayer(player.player_id)">
-                {{ player.player_name }}
-              </span>
-              <span class="hot-team">( {{ player.team }} )</span>
-              <span class="hot-league-div" v-if="TEAM_INFO[player.team]">
-                - {{ TEAM_INFO[player.team].league }}, {{ TEAM_INFO[player.team].division }}
-              </span>
-            </div>
-            <div class="hot-stats">
-              AVG: <b>{{ player.avg }}</b> | HR: <b>{{ player.home_runs }}</b> | RBI: <b>{{ player.rbi }}</b> | Hits: <b>{{ player.hits }}</b> | AB: <b>{{ player.at_bats }}</b>
-            </div>
-          </li>
-        </ul>
+        <!-- Sortable Stats Table -->
+        <div v-if="filteredHotPlayers.length" class="hot-table-container">
+          <table class="hot-table">
+            <thead>
+              <tr>
+                <th class="player-header">Player</th>
+                <th 
+                  class="stat-header sortable" 
+                  @click="sortBy('avg')"
+                  :class="{ 'sorted-asc': sortField === 'avg' && sortDirection === 'asc', 'sorted-desc': sortField === 'avg' && sortDirection === 'desc' }"
+                >
+                  AVG
+                  <span class="sort-arrow">{{ getSortArrow('avg') }}</span>
+                </th>
+                <th 
+                  class="stat-header sortable" 
+                  @click="sortBy('home_runs')"
+                  :class="{ 'sorted-asc': sortField === 'home_runs' && sortDirection === 'asc', 'sorted-desc': sortField === 'home_runs' && sortDirection === 'desc' }"
+                >
+                  HR
+                  <span class="sort-arrow">{{ getSortArrow('home_runs') }}</span>
+                </th>
+                <th 
+                  class="stat-header sortable" 
+                  @click="sortBy('rbi')"
+                  :class="{ 'sorted-asc': sortField === 'rbi' && sortDirection === 'asc', 'sorted-desc': sortField === 'rbi' && sortDirection === 'desc' }"
+                >
+                  RBI
+                  <span class="sort-arrow">{{ getSortArrow('rbi') }}</span>
+                </th>
+                <th 
+                  class="stat-header sortable" 
+                  @click="sortBy('hits')"
+                  :class="{ 'sorted-asc': sortField === 'hits' && sortDirection === 'asc', 'sorted-desc': sortField === 'hits' && sortDirection === 'desc' }"
+                >
+                  H
+                  <span class="sort-arrow">{{ getSortArrow('hits') }}</span>
+                </th>
+                <th 
+                  class="stat-header sortable" 
+                  @click="sortBy('at_bats')"
+                  :class="{ 'sorted-asc': sortField === 'at_bats' && sortDirection === 'asc', 'sorted-desc': sortField === 'at_bats' && sortDirection === 'desc' }"
+                >
+                  AB
+                  <span class="sort-arrow">{{ getSortArrow('at_bats') }}</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr 
+                v-for="player in sortedHotPlayers" 
+                :key="player.player_id"
+                class="hot-row"
+              >
+                <td class="player-cell">
+                  <div class="player-info">
+                    <img
+                      v-if="getTeamLogoUrl(player.team)"
+                      :src="getTeamLogoUrl(player.team)"
+                      :alt="player.team + ' logo'"
+                      class="team-logo-mini"
+                      loading="lazy"
+                    />
+                    <div class="player-details">
+                      <span 
+                        class="player-name" 
+                        @click="goToPlayer(player.player_id)" 
+                        tabindex="0" 
+                        role="button" 
+                        @keydown.enter="goToPlayer(player.player_id)"
+                      >
+                        {{ player.player_name }}
+                      </span>
+                      <div class="team-info">
+                        <span class="team-name">{{ player.team }}</span>
+                        <span class="league-div" v-if="TEAM_INFO[player.team]">
+                          {{ TEAM_INFO[player.team].league }}, {{ TEAM_INFO[player.team].division }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+                <td class="stat-cell">{{ player.avg }}</td>
+                <td class="stat-cell">{{ player.home_runs }}</td>
+                <td class="stat-cell">{{ player.rbi }}</td>
+                <td class="stat-cell">{{ player.hits }}</td>
+                <td class="stat-cell">{{ player.at_bats }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
         <p v-else class="no-results">No trending players to display.</p>
       </section>
     </div>
@@ -196,6 +260,8 @@ export default {
       selectedLeague: '',
       selectedDivision: '',
       activeTab: 'trivia',
+      sortField: 'avg',
+      sortDirection: 'desc'
     }
   },
   computed: {
@@ -207,7 +273,25 @@ export default {
         const divisionMatch = this.selectedDivision ? info.division === this.selectedDivision : true;
         return leagueMatch && divisionMatch;
       });
-      return filtered.slice(0, 10);
+      return filtered; // Don't slice here, let sortedHotPlayers handle the limit
+    },
+    sortedHotPlayers() {
+      const players = [...this.filteredHotPlayers];
+      const sorted = players.sort((a, b) => {
+        let aVal = a[this.sortField];
+        let bVal = b[this.sortField];
+        
+        // Convert to numbers for proper sorting
+        if (typeof aVal === 'string' && !isNaN(aVal)) aVal = parseFloat(aVal);
+        if (typeof bVal === 'string' && !isNaN(bVal)) bVal = parseFloat(bVal);
+        
+        if (this.sortDirection === 'asc') {
+          return aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
+        } else {
+          return aVal < bVal ? 1 : aVal > bVal ? -1 : 0;
+        }
+      });
+      return sorted.slice(0, 10); // Show top 10 after sorting
     },
     TEAM_INFO() {
       return TEAM_INFO;
@@ -232,6 +316,20 @@ export default {
     goToPlayer(player_id) {
       this.$router.push({ name: 'PlayerProfile', params: { player_id } });
     },
+    sortBy(field) {
+      if (this.sortField === field) {
+        // Toggle direction if same field
+        this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+      } else {
+        // New field, default to descending for stats
+        this.sortField = field;
+        this.sortDirection = 'desc';
+      }
+    },
+    getSortArrow(field) {
+      if (this.sortField !== field) return '';
+      return this.sortDirection === 'asc' ? '↑' : '↓';
+    }
   },
   mounted() {
     this.getWhosHot(7);
@@ -288,24 +386,10 @@ export default {
   padding: 0;
 }
 .main-header h1 {
-  color: #1e293b; /* Or your preferred light mode text color */
+  color: #1e293b;
   background: transparent;
   padding: 0;
   margin: 0 0 0 24px;
-}
-
-/* Dark mode overrides */
-body.dark .main-header {
-  background: transparent !important;
-  box-shadow: none !important;
-  padding: 0 !important;
-  margin-bottom: 24px !important;
-}
-body.dark .main-header h1 {
-  color: #7bbef9 !important;
-  background: transparent !important;
-  padding: 0 !important;
-  margin: 0 0 0 24px !important;
 }
 
 .card {
@@ -353,42 +437,102 @@ body.dark .main-header h1 {
   border-radius: 6px;
   border: 1px solid #cbd5e1;
 }
-.hot-list {
-  list-style: none;
-  padding: 0;
+
+/* Table Styles */
+.hot-table-container {
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
 }
-.hot-item {
-  padding: 12px 0;
+.hot-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+}
+.hot-table th,
+.hot-table td {
+  padding: 12px;
+  text-align: left;
   border-bottom: 1px solid #e2e8f0;
 }
-.hot-row {
+.hot-table th {
+  background: #f8fafc;
+  font-weight: 600;
+  color: #374151;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.stat-header.sortable {
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.15s;
+  position: relative;
+}
+.stat-header.sortable:hover {
+  background: #e2e8f0;
+}
+.stat-header.sorted-asc,
+.stat-header.sorted-desc {
+  background: #dbeafe;
+  color: #1e40af;
+}
+.sort-arrow {
+  margin-left: 4px;
+  font-size: 12px;
+  opacity: 0.7;
+}
+.player-header {
+  min-width: 200px;
+}
+.stat-header {
+  min-width: 60px;
+  text-align: center;
+}
+.player-cell {
+  min-width: 200px;
+}
+.stat-cell {
+  text-align: center;
+  font-weight: 500;
+}
+.player-info {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 4px;
 }
 .team-logo-mini {
   width: 24px;
   height: 24px;
   object-fit: contain;
+  flex-shrink: 0;
 }
-.hot-name {
+.player-details {
+  min-width: 0;
+}
+.player-name {
   font-weight: 600;
   cursor: pointer;
+  color: #1e293b;
+  display: block;
+  margin-bottom: 2px;
 }
-.hot-name:hover {
+.player-name:hover {
   color: #2563eb;
 }
-.hot-team {
+.team-info {
+  font-size: 0.85rem;
   color: #64748b;
 }
-.hot-league-div {
+.team-name {
+  font-weight: 500;
+}
+.league-div {
+  margin-left: 4px;
   color: #94a3b8;
-  font-size: 0.9rem;
 }
-.hot-stats {
-  font-size: 0.9rem;
-  color: #64748b;
+.hot-row:hover {
+  background: #f8fafc;
 }
 .no-results {
   color: #64748b;
@@ -404,6 +548,12 @@ body.dark .hot-section,
 body.dark .sidebar {
   background: #232946 !important;
   color: #f9f9fc !important;
+}
+body.dark .main-header h1 {
+  color: #7bbef9 !important;
+  background: transparent !important;
+  padding: 0 !important;
+  margin: 0 0 0 24px !important;
 }
 body.dark .sidebar button {
   background: none !important;
@@ -429,21 +579,46 @@ body.dark .hot-filters select {
   color: #f9f9fc !important;
   border-color: #334155 !important;
 }
-body.dark .hot-item {
+
+/* Dark Mode Table Styles */
+body.dark .hot-table-container {
+  border-color: #334155 !important;
+}
+body.dark .hot-table {
+  background: #232946 !important;
+}
+body.dark .hot-table th {
+  background: #1a1d3a !important;
+  color: #f9f9fc !important;
   border-bottom-color: #334155 !important;
 }
-body.dark .hot-name {
+body.dark .hot-table td {
+  border-bottom-color: #334155 !important;
+  color: #f9f9fc !important;
+}
+body.dark .stat-header.sortable:hover {
+  background: #2a2e4a !important;
+}
+body.dark .stat-header.sorted-asc,
+body.dark .stat-header.sorted-desc {
+  background: #2563eb !important;
+  color: #fff !important;
+}
+body.dark .player-name {
   color: #7bbef9 !important;
 }
-body.dark .hot-name:hover {
+body.dark .player-name:hover {
   color: #a7d2ff !important;
 }
-body.dark .hot-team,
-body.dark .hot-league-div {
+body.dark .team-info,
+body.dark .team-name {
   color: #b6c6e3 !important;
 }
-body.dark .hot-stats {
-  color: #e0eaff !important; /* Light blue-gray, easy to read */
+body.dark .league-div {
+  color: #8b9cc7 !important;
+}
+body.dark .hot-row:hover {
+  background: #2a2e4a !important;
 }
 body.dark .no-results {
   color: #b6c6e3 !important;

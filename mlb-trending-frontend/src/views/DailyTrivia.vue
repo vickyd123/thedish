@@ -88,7 +88,10 @@ export default {
     },
   },
   mounted() {
-    this.fetchDailyTrivia();
+  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+  console.log(yesterday)
+  localStorage.removeItem(`trivia-question-${yesterday}`);
+  this.fetchDailyTrivia();
   },
   watch: {
     // If the question changes, re-check localStorage
