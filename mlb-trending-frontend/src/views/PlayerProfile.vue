@@ -143,16 +143,24 @@ export default {
 </script>
 
 <style scoped>
+/* Shared and container styles */
 .profile-container {
   max-width: 900px;
   margin: 32px auto;
   padding: 32px;
-  background: #f9f9fc;
   border-radius: 20px;
   box-shadow: 0 4px 24px rgba(0,0,0,0.07), 0 1.5px 6px rgba(0,0,0,0.03);
   font-family: 'Segoe UI', 'Roboto', 'Arial', sans-serif;
+  background: #f9f9fc;
+  color: #1e293b;
 }
-
+.profile-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 40px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+  width: 100%;
+}
 .back-btn {
   background: #eee;
   border: none;
@@ -162,26 +170,17 @@ export default {
   font-size: 1.1rem;
   margin-bottom: 16px;
   transition: background 0.2s;
+  color: #1e293b;
 }
 .back-btn:hover {
   background: #dbeafe;
 }
-
-.profile-card {
-  background: #fff;
-  border-radius: 16px;
-  padding: 40px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
-  width: 100%;
-}
-
 .profile-header {
   display: flex;
   align-items: center;
   gap: 24px;
   margin-bottom: 20px;
 }
-
 .team-logo {
   width: 60px;
   height: 60px;
@@ -189,7 +188,6 @@ export default {
   background: #f1f5f9;
   box-shadow: 0 2px 6px rgba(0,0,0,0.08);
 }
-
 .player-title {
   font-size: 2.5rem;
   font-weight: bold;
@@ -198,54 +196,149 @@ export default {
   margin: 0;
 }
 
+/* Table styles – Light Mode */
 .splits-table-horizontal {
   margin-top: 28px;
   overflow-x: auto;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
 }
-
 .splits-table-horizontal table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   min-width: 600px;
+  border-radius: 12px;
+  overflow: hidden;
 }
-
 .splits-table-horizontal th,
 .splits-table-horizontal td {
-  padding: 12px 16px;
+  padding: 14px 16px;
   text-align: center;
   font-size: 1.13rem;
+  border-bottom: 1px solid rgba(0,0,0,0.08);
 }
-
 .splits-table-horizontal th {
   background: #e0e7ff;
   color: #2563eb;
   font-weight: 700;
   font-size: 1.15rem;
   letter-spacing: 0.5px;
+  border-bottom: 2px solid #2563eb;
 }
-
-.splits-table-horizontal tr:nth-child(even) td {
-  background: #f3f6fb;
+.splits-table-horizontal tbody tr {
+  background: #fff;
 }
-
+.splits-table-horizontal tbody tr:nth-child(odd) .stat-label,
+.splits-table-horizontal tbody tr:nth-child(odd) .stat-value {
+  color: #1e293b;
+  font-weight: 500;
+}
+.dark .splits-table-horizontal tbody tr:nth-child(even) .stat-label,
+.dark .splits-table-horizontal tbody tr:nth-child(even) .stat-value {
+  color: #93c5fd !important;
+  font-weight: 600;
+}
 .stat-label {
   font-weight: 600;
-  color: #2563eb;
   text-align: left;
 }
-
 .stat-value {
   font-family: 'Menlo', 'Monaco', monospace;
-  color: #0f172a;
+  font-weight: 500;
 }
 
+/* Table styles – Dark Mode */
+.dark .profile-container,
+.dark .profile-card {
+  background: #232946;
+  color: #e2e8f0;
+}
+.dark .back-btn {
+  background: #393960;
+  color: #e2e8f0;
+}
+.dark .back-btn:hover {
+  background: #4e4e7e;
+}
+.dark .team-logo {
+  background: #2C2C3A;
+}
+.dark .player-title {
+  color: #e2e8f0;
+}
+.dark .splits-table-horizontal {
+  background: #232946;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+.dark .splits-table-horizontal table {
+  background: #232946;
+}
+.dark .splits-table-horizontal th {
+  background: #334155;
+  color: #60a5fa;
+  border-bottom: 2px solid #334155;
+}
+.dark .splits-table-horizontal td {
+  border-bottom: 1px solid #334155;
+}
+
+/* Dark Mode Alternating Rows - Updated for Better Readability */
+/* Odd rows: dark background, bright white text */
+.dark .splits-table-horizontal tbody tr:nth-child(odd) {
+  background: #232946 !important;
+  background-color: #232946 !important;
+}
+.dark .splits-table-horizontal tbody tr:nth-child(odd) td {
+  background: #232946 !important;
+  background-color: #232946 !important;
+}
+.dark .splits-table-horizontal tbody tr:nth-child(odd) .stat-label,
+.dark .splits-table-horizontal tbody tr:nth-child(odd) .stat-value {
+  color: #ffffff !important;
+  font-weight: 600;
+}
+
+/* Even rows: blue background with light blue text for pop */
+.dark .splits-table-horizontal tbody tr:nth-child(even) {
+  background: #2d3748 !important;
+  background-color: #2d3748 !important;
+}
+.dark .splits-table-horizontal tbody tr:nth-child(even) td {
+  background: #2d3748 !important;
+  background-color: #2d3748 !important;
+}
+.dark .splits-table-horizontal tbody tr:nth-child(even) .stat-label,
+.dark .splits-table-horizontal tbody tr:nth-child(even) .stat-value {
+  color: #ffffff !important;
+  font-weight: 600;
+}
+.dark .splits-table-horizontal tbody tr:nth-child(even) .stat-label {
+  color: #60a5fa !important;
+  font-weight: 600;
+}
+
+/* Hover effects for better interactivity */
+.dark .splits-table-horizontal tbody tr:hover {
+  background: #1d4ed8 !important;
+  transition: background-color 0.2s ease;
+}
+.dark .splits-table-horizontal tbody tr:nth-child(odd):hover .stat-label,
+.dark .splits-table-horizontal tbody tr:nth-child(odd):hover .stat-value {
+  color: #bfdbfe;
+}
+
+/* Other styles */
 .no-stats {
   text-align: center;
   color: #888;
   margin-top: 40px;
   font-size: 1.1rem;
 }
-
+.dark .no-stats {
+  color: #b0b3b8;
+}
 .loading-spinner {
   display: flex;
   justify-content: center;
@@ -259,6 +352,9 @@ export default {
   border-radius: 50%;
   border-top-color: #2563eb;
   animation: spin 1s ease-in-out infinite;
+}
+.dark .spinner {
+  border-top-color: #e2e8f0;
 }
 @keyframes spin {
   to { transform: rotate(360deg); }
@@ -275,6 +371,10 @@ export default {
   .splits-table-horizontal table {
     min-width: 400px;
     font-size: 0.98rem;
+  }
+  .splits-table-horizontal th,
+  .splits-table-horizontal td {
+    padding: 10px 12px;
   }
 }
 </style>
