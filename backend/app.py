@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import psycopg2
 import requests
 from bs4 import BeautifulSoup
@@ -21,7 +21,7 @@ app = Flask(__name__)
 
 @app.route('/api/daily_digest')
 def daily_digest():
-    yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
+    yesterday = (datetime.now(timezone.utc) - timedelta(days=1)).strftime('%Y-%m-%d')
     filename = f"{yesterday}.txt"
     if not all([AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, S3_BUCKET]):
         return jsonify({"digest": "Server misconfiguration: AWS credentials or bucket missing."}), 500
