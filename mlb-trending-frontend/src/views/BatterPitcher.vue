@@ -1,39 +1,44 @@
 <template>
-  <section class="card batter-pitcher-card">
-    <h2 class="card-title">Batter vs Pitcher (Since 2020) </h2>
-    <div class="search-container">
+  <section class="bvp-card">
+    <h2 class="bvp-title">
+      <span>Batter vs Pitcher <small>(Since 2020)</small></span>
+    </h2>
+    <div class="bvp-search">
       <input
         v-model="batter"
-        class="search-input"
+        class="bvp-input"
         placeholder="Batter name (e.g., Heliot Ramos)"
         autocomplete="off"
-        aria-label="Batter name"
       />
       <input
         v-model="pitcher"
-        class="search-input"
+        class="bvp-input"
         placeholder="Pitcher name (e.g., Bryan Woo)"
         autocomplete="off"
-        aria-label="Pitcher name"
       />
-      <button @click.prevent="fetchStats" class="btn-primary">
-        Lookup Stats
+      <button @click.prevent="fetchStats" class="bvp-btn">
+        <i class="fa fa-search"></i> Lookup Stats
       </button>
     </div>
-    <div v-if="loading" class="loading-indicator">
-      <span>Loading matchup stats...</span>
+    <div v-if="loading" class="bvp-loading">
+      <span class="spinner"></span> Loading matchup stats...
     </div>
-    <div v-if="error" class="error-message">
-      <span>{{ error }}</span>
+    <div v-if="error" class="bvp-error">
+      <i class="fa fa-exclamation-triangle"></i> {{ error }}
     </div>
-    <div v-if="stats && stats.message" class="info-message">
-      <span>{{ stats.message }}</span>
-    </div>
-    <div v-if="stats && stats.stats" class="results-card">
-      <h3 class="results-title">
-        Stats for {{ stats.batter }} vs {{ stats.pitcher }}
-      </h3>
-      <table class="stats-table">
+    <div v-if="stats && stats.stats" class="bvp-results">
+      <div class="bvp-players">
+        <div class="bvp-player">
+          <img :src="getPlayerImage(stats.batter)" class="bvp-img" alt="Batter" />
+          <div>{{ stats.batter }}</div>
+        </div>
+        <div class="bvp-vs">vs</div>
+        <div class="bvp-player">
+          <img :src="getPlayerImage(stats.pitcher)" class="bvp-img" alt="Pitcher" />
+          <div>{{ stats.pitcher }}</div>
+        </div>
+      </div>
+      <table class="bvp-table">
         <thead>
           <tr>
             <th>PA</th>
@@ -51,13 +56,13 @@
           <tr>
             <td>{{ stats.stats.PA }}</td>
             <td>{{ stats.stats.AB }}</td>
-            <td>{{ stats.stats.H }}</td>
+            <td :class="{'highlight': stats.stats.H > 2}">{{ stats.stats.H }}</td>
             <td>{{ stats.stats.BB }}</td>
             <td>{{ stats.stats.HBP }}</td>
-            <td>{{ stats.stats.AVG }}</td>
+            <td :class="{'highlight': stats.stats.AVG > 0.3}">{{ stats.stats.AVG }}</td>
             <td>{{ stats.stats.OBP }}</td>
             <td>{{ stats.stats.SLG }}</td>
-            <td>{{ stats.stats.OPS }}</td>
+            <td :class="{'highlight': stats.stats.OPS > 1.0}">{{ stats.stats.OPS }}</td>
           </tr>
         </tbody>
       </table>
@@ -69,29 +74,21 @@
 export default {
   data() {
     return {
-      batter: '',
-      pitcher: '',
+      batter: "",
+      pitcher: "",
       stats: null,
       error: null,
       loading: false
-    }
+    };
   },
   methods: {
     async fetchStats() {
       this.stats = null;
       this.error = null;
       this.loading = true;
-      const timestamp = Date.now();
       try {
         const response = await fetch(
-          `/api/batter-vs-pitcher?batter=${encodeURIComponent(this.batter)}&pitcher=${encodeURIComponent(this.pitcher)}&_=${timestamp}`,
-          {
-            headers: {
-              'Cache-Control': 'no-cache, no-store, must-revalidate',
-              'Pragma': 'no-cache',
-              'Expires': '0'
-            }
-          }
+          `/api/batter-vs-pitcher?batter=${encodeURIComponent(this.batter)}&pitcher=${encodeURIComponent(this.pitcher)}`
         );
         const data = await response.json();
         if (data.error) {
@@ -100,153 +97,155 @@ export default {
           this.stats = data;
         }
       } catch (err) {
-        this.error = err.message || 'Failed to fetch stats';
+        this.error = err.message || "Failed to fetch stats";
       } finally {
         this.loading = false;
       }
+    },
+    getPlayerImage(name) {
+      // Optionally replace with actual player images or team logos
+      return "https://ui-avatars.com/api/?name=" + encodeURIComponent(name) + "&background=0D8ABC&color=fff";
     }
   }
-}
+};
 </script>
 
 <style scoped>
-.batter-pitcher-card {
+.bvp-card {
   background: var(--card-bg);
-  border-radius: 0;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
   padding: 2rem 1rem;
-  width: 100%;
-  max-width: none;
-  margin: 0;
-  border-bottom: 1px solid var(--border-color);
-  border-top: 1px solid var(--border-color);
-  margin-bottom: 2rem;
+  max-width: 1000px;
+  margin: 2rem auto;
+  border: 1px solid var(--card-border);
 }
-@media (min-width: 768px) {
-  .batter-pitcher-card {
-    padding: 2rem;
-  }
-}
-.card-title {
-  font-size: 2rem;
-  font-weight: 700;
-  margin-bottom: 1.5rem;
-  letter-spacing: 0.01em;
-  color: #ffd700; /* Gold for light mode */
+.bvp-title {
+  font-size: 2.2rem;
+  color: #1dcfcc;
   text-align: center;
-}
-@media (prefers-color-scheme: dark) {
-  .card-title {
-    color: #ffd700; /* Gold for dark mode */
-  }
-}
-.search-container {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
   margin-bottom: 1.5rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5em;
 }
-@media (min-width: 600px) {
-  .search-container {
-    flex-direction: row;
-    align-items: flex-end;
-    max-width: 800px;
-    margin: 0 auto 1.5rem;
-  }
-  .search-input {
-    flex: 1;
-  }
+.bvp-title small {
+  font-size: 1rem;
+  color: var(--subtext);
 }
-.search-input {
-  box-sizing: border-box;
-  width: 100%;
+.moon-icon {
+  font-size: 1.5rem;
+}
+.bvp-search {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+.bvp-input {
   padding: 12px 16px;
   font-size: 1rem;
-  border: 1px solid var(--border-color);
   border-radius: 8px;
+  border: 1px solid var(--input-border);
   background: var(--input-bg);
-  color: var(--text-color);
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-  transition: border-color 0.15s, box-shadow 0.15s;
+  color: var(--text);
+  min-width: 250px;
 }
-.search-input:focus {
-  outline: none;
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
-}
-.btn-primary {
-  padding: 12px 24px;
-  background: var(--primary-color);
-  color: var(--text-color);
+.bvp-btn {
+  background: var(--highlight);
+  color: var(--highlight-text);
   border: none;
   border-radius: 8px;
+  padding: 12px 20px;
+  font-weight: 700;
   cursor: pointer;
-  font-size: 1rem;
-  font-weight: 600;
   transition: background 0.15s;
-  white-space: nowrap;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
 }
-.btn-primary:hover {
-  background: var(--primary-hover);
+.bvp-btn:hover {
+  background: var(--highlight-hover);
 }
-.loading-indicator,
-.error-message,
-.info-message {
-  margin: 1rem 0;
-  padding: 1rem;
-  border-radius: 8px;
+.bvp-loading {
   text-align: center;
-  max-width: 800px;
-  margin-left: auto;
-  margin-right: auto;
+  color: var(--highlight);
+  margin-bottom: 1rem;
 }
-.loading-indicator {
-  background: var(--loading-bg);
-  color: var(--loading-text);
+.spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--highlight);
+  border-top: 2px solid var(--card-bg);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-right: 0.5em;
 }
-.error-message {
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.bvp-error {
   background: var(--error-bg);
   color: var(--error-text);
-}
-.info-message {
-  background: var(--info-bg);
-  color: var(--info-text);
-}
-.results-card {
-  background: var(--card-bg);
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-  padding: 1.5rem;
-  margin: 2rem auto;
-  border: 1px solid var(--border-color);
-  max-width: 800px;
-}
-.results-title {
-  margin-top: 0;
+  text-align: center;
   margin-bottom: 1rem;
-  color: var(--title-color);
+  padding: 1em;
+}
+.bvp-results {
+  background: var(--results-bg);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-top: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+.bvp-players {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2em;
+  margin-bottom: 1.5rem;
+}
+.bvp-player {
   text-align: center;
 }
-.stats-table {
+.bvp-img {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  margin-bottom: 0.5em;
+  background: var(--input-bg);
+  object-fit: cover;
+}
+.bvp-vs {
+  font-size: 1.5rem;
+  color: var(--highlight);
+  font-weight: bold;
+}
+.bvp-table {
   width: 100%;
   border-collapse: collapse;
   margin: 0 auto;
   background: var(--table-bg);
 }
-.stats-table th, .stats-table td {
+.bvp-table th, .bvp-table td {
   padding: 0.75rem;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--table-border);
   text-align: center;
+  font-size: 1.1rem;
 }
-.stats-table th {
-  background: var(--th-bg);
+.bvp-table th {
+  background: var(--table-header-bg);
+  color: var(--highlight);
   font-weight: bold;
 }
-.stats-table tr:nth-child(even) {
-  background: var(--table-row-even);
-}
-.stats-table tr:hover {
-  background: var(--table-row-hover);
+.bvp-table td.highlight {
+  background: var(--highlight);
+  color: var(--highlight-text);
+  font-weight: bold;
+  border-radius: 4px;
 }
 </style>

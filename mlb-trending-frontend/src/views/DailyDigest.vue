@@ -20,7 +20,7 @@ export default {
   data() {
     return {
       digest: "",
-      loading: true,
+      loading: false,
       error: "",
     };
   },
@@ -59,11 +59,11 @@ export default {
   },
   methods: {
     async fetchDigest() {
-      // Use a key based on the current date (resets daily)
-      const today = new Date().toISOString().split('T')[0];
-      const cacheKey = `daily-digest-${today}`;
+      this.loading = true;
+      const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
+      const cacheKey = `daily-digest-${yesterday}`;
 
-      // Try to get cached digest for today
+      // Try to get cached digest for yesterday
       const cached = localStorage.getItem(cacheKey);
       if (cached) {
         this.digest = cached;
@@ -71,8 +71,6 @@ export default {
         return;
       }
 
-      // Otherwise, fetch from API
-      this.loading = true;
       try {
         const response = await fetch("/api/daily_digest");
         if (!response.ok) {
@@ -81,7 +79,7 @@ export default {
         }
         const data = await response.json();
         this.digest = data.digest;
-        // Cache the digest for today
+        // Cache the digest for yesterday
         localStorage.setItem(cacheKey, data.digest);
         this.loading = false;
       } catch (err) {
@@ -89,12 +87,26 @@ export default {
         this.loading = false;
       }
     },
+    cleanupOldDigestKeys() {
+      const today = new Date();
+      const oneWeekAgo = new Date(today);
+      oneWeekAgo.setDate(today.getDate() - 7); // Clean up keys older than 7 days
+
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('daily-digest-')) {
+          const dateStr = key.split('-').slice(2).join('-');
+          const keyDate = new Date(dateStr);
+          if (keyDate < oneWeekAgo) {
+            localStorage.removeItem(key);
+          }
+        }
+      });
+    },
   },
   mounted() {
-  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-  localStorage.removeItem(`daily-digest-${yesterday}`);
-  this.fetchDigest();
-},
+    this.cleanupOldDigestKeys();
+    this.fetchDigest();
+  },
 };
 </script>
 

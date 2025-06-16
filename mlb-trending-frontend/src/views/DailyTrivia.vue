@@ -1,7 +1,13 @@
 <template>
   <section class="card trivia-section" aria-live="polite">
     <h2>Daily Trivia</h2>
-    <div v-if="triviaQuestion">
+    <div v-if="questionLoading" class="loading-spinner">
+      <div class="spinner"></div>
+    </div>
+    <div v-else-if="error">
+      <em class="error">{{ error }}</em>
+    </div>
+    <div v-else-if="triviaQuestion">
       <p>{{ triviaQuestion.question }}</p>
       <div class="answer-row">
         <span
@@ -24,11 +30,8 @@
       </div>
       <small v-if="!showAnswer" class="hint">(Click to reveal the answer)</small>
     </div>
-    <div v-else-if="error">
-      <em class="error">{{ error }}</em>
-    </div>
     <div v-else>
-      <em>Loading question...</em>
+      <em>No trivia available yet.</em>
     </div>
   </section>
 </template>
@@ -41,11 +44,11 @@ export default {
       triviaQuestion: null,
       showAnswer: false,
       error: null,
+      questionLoading: false,
     };
   },
   computed: {
     storageKey() {
-      // Use a unique key per question (by question text, or use a question ID if available)
       return this.triviaQuestion
         ? "trivia-answer-revealed-" + this.triviaQuestion.question
         : "";
@@ -53,30 +56,33 @@ export default {
   },
   methods: {
     async fetchDailyTrivia() {
-      // Use a key based on the current date (resets daily)
-      const today = new Date().toISOString().split('T')[0];
+      this.questionLoading = true;
+      const today = new Date().toISOString().split("T")[0];
       const cacheKey = `trivia-question-${today}`;
 
-      // Try to get cached question for today
+      // Try to get cached question for yesterday
       const cached = localStorage.getItem(cacheKey);
       if (cached) {
         this.triviaQuestion = JSON.parse(cached);
         if (this.storageKey)
           this.showAnswer = localStorage.getItem(this.storageKey) === "true";
+        this.questionLoading = false;
         return;
       }
 
       try {
-        const response = await fetch("/api/daily_trivia");
+        const response = await fetch(`/api/daily_trivia?ts=${Date.now()}`);
         if (!response.ok) throw new Error("Failed to fetch trivia");
         this.triviaQuestion = await response.json();
-        // Cache the question for today
+        // Cache the question for yesterday
         localStorage.setItem(cacheKey, JSON.stringify(this.triviaQuestion));
         // Check answer reveal state
         if (this.storageKey)
           this.showAnswer = localStorage.getItem(this.storageKey) === "true";
+        this.questionLoading = false;
       } catch (err) {
         this.error = "Error loading trivia. Try again later.";
+        this.questionLoading = false;
         console.error(err);
       }
     },
@@ -86,15 +92,12 @@ export default {
         localStorage.setItem(this.storageKey, "true");
       }
     },
+    
   },
   mounted() {
-  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-  console.log(yesterday)
-  localStorage.removeItem(`trivia-question-${yesterday}`);
-  this.fetchDailyTrivia();
+    this.fetchDailyTrivia();
   },
   watch: {
-    // If the question changes, re-check localStorage
     triviaQuestion() {
       if (this.storageKey)
         this.showAnswer = localStorage.getItem(this.storageKey) === "true";
@@ -106,18 +109,32 @@ export default {
 <style scoped>
 .trivia-section {
   text-align: center;
+  background: #f8fafc;
+  border-radius: 20px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+  padding: 2.5rem 1.5rem 2rem 1.5rem;
+  max-width: 700px;
+  margin: 2.5rem auto;
+  border: 1px solid #e5e7eb;
+  transition: background 0.3s, color 0.3s;
 }
 .trivia-section h2 {
   font-size: 2rem;
   font-weight: 700;
   margin-bottom: 1.5rem;
   letter-spacing: 0.01em;
-  color: #32cd32; /* Bright green */
+  color: #32cd32;
   transition: color 0.3s;
 }
 @media (prefers-color-scheme: dark) {
+  .trivia-section {
+    background: #232b3b;
+    color: #e0e6ed;
+    border: 1px solid #2d3748;
+    box-shadow: 0 4px 32px rgba(0, 0, 0, 0.28);
+  }
   .trivia-section h2 {
-    color: #32cd32; /* Brighter green for dark mode */
+    color: #32cd32;
   }
 }
 .answer-row {
@@ -167,5 +184,29 @@ export default {
 .error {
   color: #c0392b;
   font-weight: bold;
+}
+.loading-spinner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100px;
+}
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  border-top-color: var(--primary-color, #32cd32);
+  animation: spin 1s ease-in-out infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-color-scheme: dark) {
+  .error {
+    color: #ff7675;
+  }
 }
 </style>

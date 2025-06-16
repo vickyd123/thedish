@@ -21,7 +21,16 @@
             </thead>
             <tbody>
               <tr v-for="team in division.teams" :key="team.id">
-                <td class="team-col">{{ team.name }}</td>
+                <td class="team-col">
+                  <div class="team-with-logo">
+                    <img
+                      :src="`https://www.mlbstatic.com/team-logos/${team.id}.svg`"
+                      class="team-logo"
+                      :alt="team.name"
+                    />
+                    <span>{{ team.name }}</span>
+                  </div>
+                </td>
                 <td class="stat-col">{{ team.wins }}</td>
                 <td class="stat-col">{{ team.losses }}</td>
                 <td class="stat-col">{{ (Number(team.pct) || 0).toFixed(3) }}</td>
@@ -31,7 +40,7 @@
           </table>
         </div>
         <!-- Wild Card Standings -->
-        <div v-if="league.wildCardTeams.length > 0" class="division-section">
+        <div v-if="league.wildCardTeams && league.wildCardTeams.length > 0" class="division-section">
           <h4 class="division-name">Wild Card</h4>
           <table class="standings-table">
             <thead>
@@ -44,37 +53,63 @@
               </tr>
             </thead>
             <tbody>
-  <!-- Top 3 wild card teams -->
-  <tr v-for="(team, index) in league.wildCardTeams.slice(0, 3)" :key="team.id">
-    <td class="team-col">{{ team.name }}</td>
-    <td class="stat-col">{{ team.wins }}</td>
-    <td class="stat-col">{{ team.losses }}</td>
-    <td class="stat-col">{{ (Number(team.pct) || 0).toFixed(3) }}</td>
-    <td class="stat-col">
-      {{ index === 2
-          ? '-'
-          : (team.wildCardGB !== undefined
-              ? '+' + Math.abs(team.wildCardGB).toFixed(1)
-              : team.gb === '0.0' ? '-' : team.gb)
-      }}
-    </td>
-  </tr>
-  <!-- Divider after the third row -->
-  <tr class="divider-row">
-    <td colspan="5"><hr></td>
-  </tr>
-  <!-- Remaining wild card teams (teams 4 and 5) -->
-  <tr v-for="(team) in league.wildCardTeams.slice(3)" :key="team.id">
-    <td class="team-col">{{ team.name }}</td>
-    <td class="stat-col">{{ team.wins }}</td>
-    <td class="stat-col">{{ team.losses }}</td>
-    <td class="stat-col">{{ (Number(team.pct) || 0).toFixed(3) }}</td>
-    <td class="stat-col">
-      {{ team.wildCardGB !== undefined ? team.wildCardGB.toFixed(1) : team.gb === '0.0' ? '-' : team.gb }}
-    </td>
-  </tr>
-</tbody>
-
+              <!-- Top 3 wild card teams -->
+              <tr v-for="(team, index) in league.wildCardTeams.slice(0, 3)" :key="team.id">
+                <td class="team-col">
+                  <div class="team-with-logo">
+                    <img
+                      :src="`https://www.mlbstatic.com/team-logos/${team.id}.svg`"
+                      class="team-logo"
+                      :alt="team.name"
+                    />
+                    <span>{{ team.name }}</span>
+                  </div>
+                </td>
+                <td class="stat-col">{{ team.wins }}</td>
+                <td class="stat-col">{{ team.losses }}</td>
+                <td class="stat-col">{{ (Number(team.pct) || 0).toFixed(3) }}</td>
+                <td class="stat-col">
+                  {{
+                    index === 2
+                      ? '-'
+                      : team.wildCardGB !== undefined
+                        ? '+' + Math.abs(team.wildCardGB).toFixed(1)
+                        : team.gb === '0.0'
+                          ? '-'
+                          : team.gb
+                  }}
+                </td>
+              </tr>
+              <!-- Divider after the third row -->
+              <tr class="divider-row">
+                <td colspan="5"><hr /></td>
+              </tr>
+              <!-- Remaining wild card teams (teams 4 and 5) -->
+              <tr v-for="team in league.wildCardTeams.slice(3)" :key="team.id">
+                <td class="team-col">
+                  <div class="team-with-logo">
+                    <img
+                      :src="`https://www.mlbstatic.com/team-logos/${team.id}.svg`"
+                      class="team-logo"
+                      :alt="team.name"
+                    />
+                    <span>{{ team.name }}</span>
+                  </div>
+                </td>
+                <td class="stat-col">{{ team.wins }}</td>
+                <td class="stat-col">{{ team.losses }}</td>
+                <td class="stat-col">{{ (Number(team.pct) || 0).toFixed(3) }}</td>
+                <td class="stat-col">
+                  {{
+                    team.wildCardGB !== undefined
+                      ? team.wildCardGB.toFixed(1)
+                      : team.gb === '0.0'
+                        ? '-'
+                        : team.gb
+                  }}
+                </td>
+              </tr>
+            </tbody>
           </table>
         </div>
       </div>
@@ -110,7 +145,7 @@ export default {
         )
       );
       this.leagues = results.map((data, idx) => {
-        const leagueName = idx === 0 ? 'American League' : 'National League';
+        const leagueName = idx === 0 ? "American League" : "National League";
         const divisions = data.records.map(division => ({
           id: division.division.id,
           name: DIVISION_NAMES[division.division.id] || division.division.name,
@@ -129,7 +164,7 @@ export default {
           division => division.teamRecords
             .filter(team => {
               const rank = team.divisionRank;
-              return rank !== 1 && rank !== '1' && rank !== undefined;
+              return rank !== 1 && rank !== "1" && rank !== undefined;
             })
             .map(team => ({
               id: team.team.id,
@@ -165,7 +200,7 @@ export default {
         };
       });
     } catch (err) {
-      this.error = err.message || 'Failed to load standings';
+      this.error = err.message || "Failed to load standings";
     } finally {
       this.loading = false;
     }
@@ -196,7 +231,7 @@ export default {
   font-weight: 700;
   margin-bottom: 1.5rem;
   letter-spacing: 0.01em;
-  color: #800080;
+  color: #ebcd54;
   text-align: center;
 }
 @media (prefers-color-scheme: dark) {
@@ -246,6 +281,16 @@ export default {
   text-align: left;
   padding-left: 1rem;
 }
+.team-with-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.team-logo {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
 .stat-col {
   width: 12.5%;
 }
@@ -268,7 +313,6 @@ export default {
   border: 0;
   border-top: 2px dotted #888;
 }
-
 .error-message {
   color: #c0392b;
   font-weight: bold;
