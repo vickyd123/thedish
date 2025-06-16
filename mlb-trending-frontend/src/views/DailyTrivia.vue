@@ -57,8 +57,8 @@ export default {
   methods: {
     async fetchDailyTrivia() {
       this.questionLoading = true;
-      const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
-      const cacheKey = `trivia-question-${yesterday}`;
+      const today = new Date().toISOString().split("T")[0];
+      const cacheKey = `trivia-question-${today}`;
 
       // Try to get cached question for yesterday
       const cached = localStorage.getItem(cacheKey);

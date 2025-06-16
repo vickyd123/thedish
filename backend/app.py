@@ -6,6 +6,10 @@ from bs4 import BeautifulSoup
 import os
 import json
 import boto3
+import time
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
 from dotenv import load_dotenv
 
 
@@ -112,7 +116,7 @@ def whos_hot(days):
         GROUP BY player_id, player_name, team
         HAVING SUM(at_bats) >= %s
         ORDER BY (SUM(hits)::float / NULLIF(SUM(at_bats), 0)) DESC
-        LIMIT 100
+        LIMIT 1000
     """
     cur.execute(query, (since, min_ab))
     rows = cur.fetchall()
@@ -208,28 +212,17 @@ def player_stats(player_id):
 def health():
     return jsonify({"status": "ok"})
 
-#this is all for batter vs pitcher
-
-def is_hit(result):
-    return result in ["Single", "Double", "Triple", "Home Run"]
-
+def is_valid_pa(result): return result.strip() and result.strip().lower() != "no play"
+def is_ab(result): return is_valid_pa(result) and not result.lower().startswith("walk") and not result.lower().startswith("hit by pitch") and not result.lower().startswith("sacrifice")
+def is_hit(result): return any(word in result.lower() for word in ["single", "double", "triple", "home run"])
+def is_walk(result): return result.lower().startswith("walk")
+def is_hbp(result): return result.lower().startswith("hit by pitch")
 def total_bases(result):
-    return {"Single": 1, "Double": 2, "Triple": 3, "Home Run": 4}.get(result, 0)
-
-def is_walk(result):
-    return result in ["Walk", "Intentional Walk"]
-
-def is_hbp(result):
-    return result == "Hit By Pitch"
-
-def is_sacrifice(result):
-    return result in ["Sacrifice Fly", "Sacrifice Bunt"]
-
-def is_valid_pa(result):
-    return not is_sacrifice(result)
-
-def is_ab(result):
-    return not (is_walk(result) or is_hbp(result) or is_sacrifice(result) or result == "Catcher Interference")
+    if "single" in result.lower(): return 1
+    elif "double" in result.lower(): return 2
+    elif "triple" in result.lower(): return 3
+    elif "home run" in result.lower(): return 4
+    return 0
 
 @app.route('/api/batter-vs-pitcher')
 def batter_vs_pitcher():
@@ -239,18 +232,36 @@ def batter_vs_pitcher():
         return jsonify({"error": "Both batter and pitcher names are required."}), 400
 
     url = f"https://doinksports.com/research/mlb/batter-vs-pitcher?batter={batter.replace(' ', '+')}&pitcher={pitcher.replace(' ', '+')}"
-    headers = {"User-Agent": "Mozilla/5.0"}
+
+    # Set up Selenium options
+    options = Options()
+    options.add_argument("--headless")  # Run in headless mode
+    options.add_argument("--disable-gpu")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("user-agent=Mozilla/5.0")
+
+    # Specify the path to your ChromeDriver (adjust as needed)
+    service = Service('C:\\Users\\victo\\Downloads\\chromedriver-win64\\chromedriver-win64\\chromedriver.exe')
+    driver = webdriver.Chrome(service=service, options=options)
 
     try:
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
-        soup = BeautifulSoup(response.text, "html.parser")
+        print(f"Requesting URL with Selenium: {url}")
+        driver.get(url)
+        time.sleep(2)  # Wait for JavaScript to load
+        html = driver.page_source
+        print(f"Page source length: {len(html)}")
 
+        soup = BeautifulSoup(html, "html.parser")
         plate_logs_header = soup.find(lambda tag: tag.name == "h3" and "Plate Appearance Logs" in tag.text)
         if plate_logs_header:
+            print("Found Plate Appearance Logs header")
             table = plate_logs_header.find_next("table")
             if table:
+                print("Found table after Plate Appearance Logs header")
                 rows = table.find_all("tr")[1:]
+                print(f"Found {len(rows)} rows in table")
+
                 pa = 0
                 ab = 0
                 hits = 0
@@ -260,23 +271,41 @@ def batter_vs_pitcher():
 
                 for row in rows:
                     cols = [col.get_text(strip=True) for col in row.find_all("td")]
+                    print("\nRow:", cols)
                     if not cols or len(cols) < 6:
+                        print("Skipping row (not enough columns)")
                         continue
 
                     result = cols[3]
+                    print("Result:", result)
 
-                    if is_valid_pa(result):
+                    valid_pa = is_valid_pa(result)
+                    ab_flag = is_ab(result)
+                    hit_flag = is_hit(result)
+                    walk_flag = is_walk(result)
+                    hbp_flag = is_hbp(result)
+                    tb = total_bases(result)
+
+                    print(f"is_valid_pa: {valid_pa}")
+                    print(f"is_ab: {ab_flag}")
+                    print(f"is_hit: {hit_flag}")
+                    print(f"is_walk: {walk_flag}")
+                    print(f"is_hbp: {hbp_flag}")
+                    print(f"total_bases: {tb}")
+
+                    if valid_pa:
                         pa += 1
-                    if is_ab(result):
+                    if ab_flag:
                         ab += 1
-                    if is_hit(result):
+                    if hit_flag:
                         hits += 1
-                    if is_walk(result):
+                    if walk_flag:
                         walks += 1
-                    if is_hbp(result):
+                    if hbp_flag:
                         hbp += 1
+                    total_bases_sum += tb
 
-                    total_bases_sum += total_bases(result)
+                print(f"\nFinal counts - PA: {pa}, AB: {ab}, H: {hits}, BB: {walks}, HBP: {hbp}, Total Bases: {total_bases_sum}")
 
                 if pa == 0:
                     return jsonify({"error": "No valid plate appearances found."}), 404
@@ -285,6 +314,8 @@ def batter_vs_pitcher():
                     obp = (hits + walks + hbp) / pa
                     slg = total_bases_sum / ab if ab else 0
                     ops = obp + slg
+
+                    print(f"Calculated stats - AVG: {avg:.3f}, OBP: {obp:.3f}, SLG: {slg:.3f}, OPS: {ops:.3f}")
 
                     return jsonify({
                         "batter": batter,
@@ -302,13 +333,16 @@ def batter_vs_pitcher():
                         }
                     })
             else:
+                print("No table found after Plate Appearance Logs header")
                 return jsonify({"error": "Table not found after Plate Appearance Logs header."}), 404
         else:
+            print("Plate Appearance Logs header not found")
             return jsonify({"error": "Plate Appearance Logs header not found."}), 404
-    except requests.HTTPError as e:
-        return jsonify({"error": f"HTTP Error: {e.response.status_code}"}), 400
     except Exception as e:
+        print(f"An error occurred: {str(e)}")
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+    finally:
+        driver.quit()
 
 
 
