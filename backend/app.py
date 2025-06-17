@@ -11,6 +11,8 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from dotenv import load_dotenv
+from zoneinfo import ZoneInfo
+
 
 
 load_dotenv()
@@ -25,8 +27,11 @@ app = Flask(__name__)
 
 @app.route('/api/daily_digest')
 def daily_digest():
-    yesterday = (datetime.now(timezone.utc) - timedelta(days=1)).strftime('%Y-%m-%d')
+    pdt = ZoneInfo("America/Los_Angeles")
+    now = datetime.now(pdt)
+    yesterday = (now - timedelta(days=1)).strftime('%Y-%m-%d')
     filename = f"{yesterday}.txt"
+    print(filename)
     if not all([AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, S3_BUCKET]):
         return jsonify({"digest": "Server misconfiguration: AWS credentials or bucket missing."}), 500
     s3 = boto3.client(
@@ -100,11 +105,12 @@ def search_player():
 
 @app.route('/api/whos_hot/<int:days>')
 def whos_hot(days):
+    sort_by = request.args.get('sort', 'avg')
+    print(f"DEBUG: sort_by = '{sort_by}'")  # Debug line
+    
     conn = get_db_conn()
     cur = conn.cursor()
     since = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
-
-    # Determine minimum at-bats based on the number of days
     min_ab = 50 if days >= 30 else 20
 
     query = """
@@ -114,19 +120,42 @@ def whos_hot(days):
         FROM baseballdb.player_daily_stats
         WHERE game_date >= %s
         GROUP BY player_id, player_name, team
-        HAVING SUM(at_bats) >= %s
-        ORDER BY (SUM(hits)::float / NULLIF(SUM(at_bats), 0)) DESC
-        LIMIT 1000
     """
-    cur.execute(query, (since, min_ab))
+    params = [since]
+
+    # Only filter by min AB if sorting by AVG
+    if sort_by == 'avg':
+        query += " HAVING SUM(at_bats) >= %s"
+        params.append(min_ab)
+        print(f"DEBUG: Added HAVING clause with min_ab = {min_ab}")  # Debug line
+    else:
+        print("DEBUG: No HAVING clause added")  # Debug line
+
+    # Sorting logic
+    sort_map = {
+        'avg': "(SUM(hits)::float / NULLIF(SUM(at_bats), 0)) DESC",
+        'home_runs': "SUM(home_runs) DESC",
+        'rbi': "SUM(rbi) DESC",
+        'hits': "SUM(hits) DESC",
+        'at_bats': "SUM(at_bats) DESC"
+    }
+    order_by = sort_map.get(sort_by, sort_map['avg'])
+    query += f" ORDER BY {order_by} LIMIT 3000"
+    
+    print(f"DEBUG: Final query = {query}")  # Debug line
+    print(f"DEBUG: Params = {params}")  # Debug line
+
+    cur.execute(query, tuple(params))
     rows = cur.fetchall()
+    
+    print(f"DEBUG: Found {len(rows)} total rows")  # Debug line
 
     trending = []
     for row in rows:
         hits = row[3] or 0
         at_bats = row[4] or 0
-        avg = f"{(hits / at_bats):.3f}" if at_bats else ".000"
-        trending.append({
+        avg = f"{(hits / at_bats):.3f}" if at_bats else None
+        player_dict = {
             'player_id': row[0],
             'player_name': row[1],
             'team': row[2],
@@ -136,7 +165,15 @@ def whos_hot(days):
             'rbi': row[6] or 0,
             'runs': row[7] or 0,
             'avg': avg
-        })
+        }
+        trending.append(player_dict)
+
+    # Check if Casey Schmitt is in the results
+    casey_schmitt = [p for p in trending if 'Casey Schmitt' in p['player_name']]
+    if casey_schmitt:
+        print(f"DEBUG: Casey Schmitt found: {casey_schmitt[0]}")
+    else:
+        print("DEBUG: Casey Schmitt NOT found in results")
 
     cur.close()
     conn.close()

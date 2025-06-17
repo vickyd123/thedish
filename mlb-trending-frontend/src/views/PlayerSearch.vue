@@ -62,79 +62,91 @@ export default {
 </script>
 
 <style scoped>
+/* CSS Custom Properties for better theme handling */
+.search-section {
+  --search-bg: #fff;
+  --search-text: #1e293b;
+  --search-border: #e2e8f0;
+  --search-focus-border: #2563eb;
+  --search-focus-shadow: rgba(37, 99, 235, 0.2);
+  --search-hover-bg: #f1f5f9;
+  --search-team-color: #64748b;
+  --search-title-color: #4169e1;
+}
+
+@media (prefers-color-scheme: dark) {
+  .search-section {
+    --search-bg: #232946;
+    --search-text: #f9f9fc;
+    --search-border: #334155;
+    --search-focus-border: #7bbef9;
+    --search-focus-shadow: rgba(123, 190, 249, 0.3);
+    --search-hover-bg: #334155;
+    --search-team-color: #b6c6e3;
+    --search-title-color: #60a5fa;
+  }
+}
+
 .search-section h2 {
   font-size: 2rem;
   font-weight: 700;
   margin-bottom: 1.5rem;
   letter-spacing: 0.01em;
-  color: #4169e1; /* Royal Blue for light mode */
+  color: var(--search-title-color);
 }
-@media (prefers-color-scheme: dark) {
-  .search-section h2 {
-    color: #60a5fa; /* Sky Blue for dark mode */
-  }
-}
+
 .search-container {
   margin-bottom: 16px;
 }
+
 .search-input {
   box-sizing: border-box;
   width: 100%;
   max-width: 100%;
   padding: 12px 16px;
   font-size: 1rem;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--search-border);
   border-radius: 8px;
-  background: #fff;
-  color: #1e293b;
+  background: var(--search-bg) !important;
+  color: var(--search-text) !important;
   box-shadow: 0 1px 2px rgba(0,0,0,0.05);
   transition: border-color 0.15s, box-shadow 0.15s;
 }
+
 .search-input:focus {
   outline: none;
-  border-color: #2563eb;
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+  border-color: var(--search-focus-border);
+  box-shadow: 0 0 0 2px var(--search-focus-shadow);
 }
+
+.search-input::placeholder {
+  color: var(--search-team-color);
+  opacity: 0.7;
+}
+
 .search-results {
   list-style: none;
   padding: 0;
   margin: 0;
 }
+
 .search-result-item {
   padding: 12px 16px;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--search-border);
   cursor: pointer;
   transition: background 0.15s;
+  color: var(--search-text);
 }
+
 .search-result-item:hover {
-  background: #f1f5f9;
+  background: var(--search-hover-bg);
 }
+
 .search-team {
-  color: #64748b;
+  color: var(--search-team-color);
 }
+
 .no-results {
-  color: #64748b;
+  color: var(--search-team-color);
   font-style: italic;
-}
-/* Dark mode overrides (if not handled globally) */
-@media (prefers-color-scheme: dark) {
-  .search-input {
-    background: #232946;
-    color: #f9f9fc;
-    border-color: #334155;
-  }
-  .search-input:focus {
-    border-color: #7bbef9;
-    box-shadow: 0 0 0 2px rgba(123, 190, 249, 0.3);
-  }
-  .search-result-item:hover {
-    background: #334155;
-  }
-  .search-team {
-    color: #b6c6e3;
-  }
-  .no-results {
-    color: #b6c6e3;
-  }
-}
-</style>
+}</style>

@@ -38,34 +38,36 @@
           <div>{{ stats.pitcher }}</div>
         </div>
       </div>
-      <table class="bvp-table">
-        <thead>
-          <tr>
-            <th>PA</th>
-            <th>AB</th>
-            <th>H</th>
-            <th>BB</th>
-            <th>HBP</th>
-            <th>AVG</th>
-            <th>OBP</th>
-            <th>SLG</th>
-            <th>OPS</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>{{ stats.stats.PA }}</td>
-            <td>{{ stats.stats.AB }}</td>
-            <td :class="{'highlight': stats.stats.H > 2}">{{ stats.stats.H }}</td>
-            <td>{{ stats.stats.BB }}</td>
-            <td>{{ stats.stats.HBP }}</td>
-            <td :class="{'highlight': stats.stats.AVG > 0.3}">{{ stats.stats.AVG }}</td>
-            <td>{{ stats.stats.OBP }}</td>
-            <td>{{ stats.stats.SLG }}</td>
-            <td :class="{'highlight': stats.stats.OPS > 1.0}">{{ stats.stats.OPS }}</td>
-          </tr>
-        </tbody>
-      </table>
+      <div class="bvp-table-container">
+        <table class="bvp-table">
+          <thead>
+            <tr>
+              <th>PA</th>
+              <th>AB</th>
+              <th>H</th>
+              <th>BB</th>
+              <th>HBP</th>
+              <th>AVG</th>
+              <th>OBP</th>
+              <th>SLG</th>
+              <th>OPS</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>{{ stats.stats.PA }}</td>
+              <td>{{ stats.stats.AB }}</td>
+              <td :class="{'highlight': stats.stats.H > 2}">{{ stats.stats.H }}</td>
+              <td>{{ stats.stats.BB }}</td>
+              <td>{{ stats.stats.HBP }}</td>
+              <td :class="{'highlight': stats.stats.AVG > 0.3}">{{ stats.stats.AVG }}</td>
+              <td>{{ stats.stats.OBP }}</td>
+              <td>{{ stats.stats.SLG }}</td>
+              <td :class="{'highlight': stats.stats.OPS > 1.0}">{{ stats.stats.OPS }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </section>
 </template>
@@ -119,6 +121,7 @@ export default {
   max-width: 1000px;
   margin: 2rem auto;
   border: 1px solid var(--card-border);
+  width: 96%;
 }
 .bvp-title {
   font-size: 2.2rem;
@@ -133,9 +136,6 @@ export default {
 .bvp-title small {
   font-size: 1rem;
   color: var(--subtext);
-}
-.moon-icon {
-  font-size: 1.5rem;
 }
 .bvp-search {
   display: flex;
@@ -165,6 +165,8 @@ export default {
   display: flex;
   align-items: center;
   gap: 0.5em;
+  min-height: 48px;
+  min-width: 48px;
 }
 .bvp-btn:hover {
   background: var(--highlight-hover);
@@ -225,11 +227,16 @@ export default {
   color: var(--highlight);
   font-weight: bold;
 }
+.bvp-table-container {
+  width: 100%;
+  overflow-x: auto;
+  margin: 0 auto;
+}
 .bvp-table {
   width: 100%;
   border-collapse: collapse;
-  margin: 0 auto;
   background: var(--table-bg);
+  margin: 0 auto;
 }
 .bvp-table th, .bvp-table td {
   padding: 0.75rem;
@@ -247,5 +254,43 @@ export default {
   color: var(--highlight-text);
   font-weight: bold;
   border-radius: 4px;
+}
+
+/* Mobile Styles */
+@media (max-width: 600px) {
+  .bvp-search {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.8rem;
+  }
+  .bvp-input {
+    width: 90%;
+    min-width: auto;
+  }
+  .bvp-btn {
+    width: 90%;
+    justify-content: center;
+  }
+  .bvp-card {
+    padding: 1.5rem 0.75rem;
+    margin: 1rem auto;
+    width: 96%;
+  }
+  .bvp-title {
+    font-size: 1.6rem;
+  }
+  .bvp-table th, .bvp-table td {
+    padding: 0.5rem;
+    font-size: 0.95rem;
+  }
+}
+@media (max-width: 400px) {
+  .bvp-players {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .bvp-vs {
+    font-size: 1rem;
+  }
 }
 </style>
