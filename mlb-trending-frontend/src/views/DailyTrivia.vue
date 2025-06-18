@@ -56,36 +56,39 @@ export default {
   },
   methods: {
     async fetchDailyTrivia() {
-      this.questionLoading = true;
-      const today = new Date().toISOString().split("T")[0];
-      const cacheKey = `trivia-question-${today}`;
+  this.questionLoading = true;
+  
+  // Format as YYYY-MM-DD in PDT
+  const options = { timeZone: 'America/Los_Angeles', year: 'numeric', month: '2-digit', day: '2-digit' };
+  const todayStr = new Date().toLocaleDateString('en-CA', options).replace(/-/g, '-');
+  const cacheKey = `trivia-question-${todayStr}`;
 
-      // Try to get cached question for yesterday
-      const cached = localStorage.getItem(cacheKey);
-      if (cached) {
-        this.triviaQuestion = JSON.parse(cached);
-        if (this.storageKey)
-          this.showAnswer = localStorage.getItem(this.storageKey) === "true";
-        this.questionLoading = false;
-        return;
-      }
+  // Try to get cached question for today
+  const cached = localStorage.getItem(cacheKey);
+  if (cached) {
+    this.triviaQuestion = JSON.parse(cached);
+    if (this.storageKey)
+      this.showAnswer = localStorage.getItem(this.storageKey) === "true";
+    this.questionLoading = false;
+    return;
+  }
 
-      try {
-        const response = await fetch(`/api/daily_trivia?ts=${Date.now()}`);
-        if (!response.ok) throw new Error("Failed to fetch trivia");
-        this.triviaQuestion = await response.json();
-        // Cache the question for yesterday
-        localStorage.setItem(cacheKey, JSON.stringify(this.triviaQuestion));
-        // Check answer reveal state
-        if (this.storageKey)
-          this.showAnswer = localStorage.getItem(this.storageKey) === "true";
-        this.questionLoading = false;
-      } catch (err) {
-        this.error = "Error loading trivia. Try again later.";
-        this.questionLoading = false;
-        console.error(err);
-      }
-    },
+  try {
+    const response = await fetch(`/api/daily_trivia?ts=${Date.now()}`);
+    if (!response.ok) throw new Error("Failed to fetch trivia");
+    this.triviaQuestion = await response.json();
+    // Cache the question for today
+    localStorage.setItem(cacheKey, JSON.stringify(this.triviaQuestion));
+    // Check answer reveal state
+    if (this.storageKey)
+      this.showAnswer = localStorage.getItem(this.storageKey) === "true";
+    this.questionLoading = false;
+  } catch (err) {
+    this.error = "Error loading trivia. Try again later.";
+    this.questionLoading = false;
+    console.error(err);
+  }
+},
     revealAnswer() {
       if (!this.showAnswer && this.storageKey) {
         this.showAnswer = true;
@@ -117,6 +120,7 @@ export default {
   margin: 2.5rem auto;
   border: 1px solid #e5e7eb;
   transition: background 0.3s, color 0.3s;
+  width: 96%;
 }
 .trivia-section h2 {
   font-size: 2rem;
@@ -207,6 +211,25 @@ export default {
 @media (prefers-color-scheme: dark) {
   .error {
     color: #ff7675;
+  }
+}
+@media (max-width: 600px) {
+  .trivia-section {
+    padding: 1.5rem 1rem;
+    margin: 1.5rem auto;
+    width: 96%;
+  }
+  .trivia-section h2 {
+    font-size: 1.6rem;
+  }
+  .blurred-answer {
+    min-width: auto;
+    width: 90%;
+    padding: 0.8em;
+    font-size: 1rem;
+  }
+  .answer-row {
+    margin-top: 1.5rem;
   }
 }
 </style>

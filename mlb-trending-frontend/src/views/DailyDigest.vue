@@ -59,34 +59,40 @@ export default {
   },
   methods: {
     async fetchDigest() {
-      this.loading = true;
-      const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
-      const cacheKey = `daily-digest-${yesterday}`;
+  this.loading = true;
+  
+  // Get yesterday in PDT (America/Los_Angeles)
+  const now = new Date();
+const options = { timeZone: 'America/Los_Angeles', year: 'numeric', month: '2-digit', day: '2-digit' };
+const todayStr = now.toLocaleDateString('en-CA', options).replace(/-/g, '-');
+const cacheKey = `daily-digest-${todayStr}`;
+console.log(cacheKey);
 
-      // Try to get cached digest for yesterday
-      const cached = localStorage.getItem(cacheKey);
-      if (cached) {
-        this.digest = cached;
-        this.loading = false;
-        return;
-      }
 
-      try {
-        const response = await fetch("/api/daily_digest");
-        if (!response.ok) {
-          const data = await response.json();
-          throw new Error(data.digest || "Failed to load daily digest.");
-        }
-        const data = await response.json();
-        this.digest = data.digest;
-        // Cache the digest for yesterday
-        localStorage.setItem(cacheKey, data.digest);
-        this.loading = false;
-      } catch (err) {
-        this.error = err.message;
-        this.loading = false;
-      }
-    },
+  // Try to get cached digest for yesterday
+  const cached = localStorage.getItem(cacheKey);
+  if (cached) {
+    this.digest = cached;
+    this.loading = false;
+    return;
+  }
+
+  try {
+    const response = await fetch("/api/daily_digest");
+    if (!response.ok) {
+      const data = await response.json();
+      throw new Error(data.digest || "Failed to load daily digest.");
+    }
+    const data = await response.json();
+    this.digest = data.digest;
+    // Cache the digest for yesterday
+    localStorage.setItem(cacheKey, data.digest);
+    this.loading = false;
+  } catch (err) {
+    this.error = err.message;
+    this.loading = false;
+  }
+},
     cleanupOldDigestKeys() {
       const today = new Date();
       const oneWeekAgo = new Date(today);
@@ -170,6 +176,16 @@ export default {
 }
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+@media (max-width: 600px) and (prefers-color-scheme: light) {
+  .digest-section {
+    background: #fff !important;
+    color: #000 !important;
+  }
+  .digest-section p,
+  .digest-section strong {
+    color: #000 !important;
+  }
 }
 @media (prefers-color-scheme: dark) {
   body {
