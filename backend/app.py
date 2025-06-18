@@ -169,11 +169,6 @@ def whos_hot(days):
         trending.append(player_dict)
 
     # Check if Casey Schmitt is in the results
-    casey_schmitt = [p for p in trending if 'Casey Schmitt' in p['player_name']]
-    if casey_schmitt:
-        print(f"DEBUG: Casey Schmitt found: {casey_schmitt[0]}")
-    else:
-        print("DEBUG: Casey Schmitt NOT found in results")
 
     cur.close()
     conn.close()

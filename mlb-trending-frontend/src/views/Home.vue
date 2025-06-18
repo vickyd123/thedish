@@ -281,91 +281,89 @@ export default {
     StandingsTab
   },
   data() {
-    return {
-      hotPlayers: [],
-      hotDays: 7,
-      selectedLeague: '',
-      selectedDivision: '',
-      activeTab: 'trivia',
-      sortField: 'avg',
-      sortDirection: 'desc',
-      mobileMenuOpen: false
-    }
-  },
-  computed: {
-    filteredHotPlayers() {
-      const filtered = this.hotPlayers.filter(player => {
-        const info = TEAM_INFO[player.team];
-        if (!info) return false;
-        const leagueMatch = this.selectedLeague ? info.league === this.selectedLeague : true;
-        const divisionMatch = this.selectedDivision ? info.division === this.selectedDivision : true;
-        return leagueMatch && divisionMatch;
-      });
-      return filtered; // Don't slice here, let sortedHotPlayers handle the limit
-    },
-    sortedHotPlayers() {
-      const players = [...this.filteredHotPlayers];
-      const sorted = players.sort((a, b) => {
-        let aVal = a[this.sortField];
-        let bVal = b[this.sortField];
-        
-        // Convert to numbers for proper sorting
-        if (typeof aVal === 'string' && !isNaN(aVal)) aVal = parseFloat(aVal);
-        if (typeof bVal === 'string' && !isNaN(bVal)) bVal = parseFloat(bVal);
-        
-        if (this.sortDirection === 'asc') {
-          return aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
-        } else {
-          return aVal < bVal ? 1 : aVal > bVal ? -1 : 0;
-        }
-      });
-      return sorted.slice(0, 10); // Show top 10 after sorting
-    },
-    TEAM_INFO() {
-      return TEAM_INFO;
-    }
-  },
-  methods: {
-    getTeamLogoUrl(teamName) {
-      const teamId = TEAM_ID_MAP[teamName];
-      return teamId
-        ? `https://www.mlbstatic.com/team-logos/team-cap-on-light/${teamId}.svg`
-        : null;
-    },
-    async getWhosHot(days) {
-      this.hotDays = days;
-      try {
-        const res = await fetch(`/api/whos_hot/${days}`);
-        this.hotPlayers = await res.json();
-      } catch {
-        this.hotPlayers = [];
-      }
-    },
-    goToPlayer(player_id) {
-      this.$router.push({ name: 'PlayerProfile', params: { player_id } });
-    },
-    sortBy(field) {
-      if (this.sortField === field) {
-        // Toggle direction if same field
-        this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
-      } else {
-        // New field, default to descending for stats
-        this.sortField = field;
-        this.sortDirection = 'desc';
-      }
-    },
-    getSortArrow(field) {
-      if (this.sortField !== field) return '';
-      return this.sortDirection === 'asc' ? '↑' : '↓';
-    },
-    setActiveTab(tab) {
-      this.activeTab = tab;
-      this.mobileMenuOpen = false; // Close mobile menu when tab is selected
-    }
-  },
-  mounted() {
-    this.getWhosHot(7);
+  return {
+    hotPlayers: [],
+    hotDays: 7,
+    selectedLeague: '',
+    selectedDivision: '',
+    activeTab: 'trivia',
+    sortField: 'avg',  // This stays the same
+    sortDirection: 'desc',
+    mobileMenuOpen: false
   }
+},
+  computed: {
+  filteredHotPlayers() {
+    const filtered = this.hotPlayers.filter(player => {
+      const info = TEAM_INFO[player.team];
+      if (!info) return false;
+      const leagueMatch = this.selectedLeague ? info.league === this.selectedLeague : true;
+      const divisionMatch = this.selectedDivision ? info.division === this.selectedDivision : true;
+      return leagueMatch && divisionMatch;
+    });
+    return filtered;
+  },
+  sortedHotPlayers() {
+    // Since backend is now handling the sorting, just return filtered results
+    // The backend already sorted them correctly based on sortField
+    return this.filteredHotPlayers.slice(0, 10);
+  },
+  TEAM_INFO() {
+    return TEAM_INFO;
+  }
+},
+  methods: {
+  getTeamLogoUrl(teamName) {
+    const teamId = TEAM_ID_MAP[teamName];
+    return teamId
+      ? `https://www.mlbstatic.com/team-logos/team-cap-on-light/${teamId}.svg`
+      : null;
+  },
+  async getWhosHot(days) {
+    this.hotDays = days;
+    try {
+      // Always pass the current sort field to backend
+      const res = await fetch(`/api/whos_hot/${days}?sort=${this.sortField}`);
+      this.hotPlayers = await res.json();
+    } catch {
+      this.hotPlayers = [];
+    }
+  },
+  goToPlayer(player_id) {
+    this.$router.push({ name: 'PlayerProfile', params: { player_id } });
+  },
+  async sortBy(field) {
+    if (this.sortField === field) {
+      // Toggle direction if same field
+      this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+      // New field, default to descending for stats
+      this.sortField = field;
+      this.sortDirection = 'desc';
+    }
+    
+    // Re-fetch data from backend with new sort parameter
+    try {
+      const res = await fetch(`/api/whos_hot/${this.hotDays}?sort=${this.sortField}`);
+      this.hotPlayers = await res.json();
+    } catch {
+      this.hotPlayers = [];
+    }
+  },
+  getSortArrow(field) {
+    if (this.sortField !== field) return '';
+    return this.sortDirection === 'asc' ? '↑' : '↓';
+  },
+  setActiveTab(tab) {
+    this.activeTab = tab;
+    this.mobileMenuOpen = false;
+  }
+},
+
+mounted() {
+  // This will now call the backend with ?sort=avg by default
+  this.getWhosHot(7);
+}
 }
 </script>
 
